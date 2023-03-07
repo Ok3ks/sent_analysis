@@ -32,4 +32,5 @@ RUN pip3 install \
     uvicorn[standard]==0.17.6 \
     wandb==0.12.16 \
     transformers \ 
-    datasets
+    datasets\
+    bs4
