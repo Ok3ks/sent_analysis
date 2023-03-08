@@ -6,3 +6,12 @@ tasks:
 vscode:
   extensions:
     - ms-python.python
+
+ports:
+  - name: Sentiment Analysis
+    description: Sentiment
+    port: 9002
+    onOpen: open-browser
+
+  - port: 3000-8999
+    onOpen: ignore

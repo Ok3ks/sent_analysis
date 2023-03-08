@@ -24,6 +24,69 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def compute_metrics(predictions,label):
+
+    acc = load_metric('accuracy')
+    f1_score = load_metric('f1')
+
+    f_1 = f1_score.compute(predictions = predictions, references = label, pos_label = 1)
+    acc_1 = acc.compute(predictions = predictions, references = label)
+    return acc_1['accuracy'], f_1['f1']
+
+def parse_html(text):
+    "removes hyperlink from a piece of text"
+    
+    soup = BeautifulSoup(text, "html.parser")
+    parsed_text = soup.get_text()
+    return parsed_text
+
+
+def spacy_preproc(text):
+
+    "Removes stopwords and punctuation and"
+    nlp = English()
+    tokenizer = nlp.tokenizer
+    refined_text = tokenizer(text)
+        
+    refined_text = [text for text in refined_text if not text.is_stop]
+    refined_text = [text for text in refined_text if not text.is_punct]
+    refined_text = [text for text in refined_text if not text.like_email]
+    refined_text = [text for text in refined_text if not text.like_url]
+    refined_text = [text.text for text in refined_text if not text.like_num]
+
+    text = " ".join(refined_text[:])
+
+    return text
+
+def regex_preproc(text): 
+
+    refined_text = re.sub("(\n)", " ", text) #removes python newline 
+    refined_text = re.sub("\w+(\')", "" , refined_text) #removes backslash
+    refined_text = re.sub("(<\W+(p >))", " ", refined_text)
+    refined_text = re.sub("(\s+)", " ", refined_text) #removes whitespaces
+    #refined_text = re.sub("(&amp|>+|-+)", "", refined_text)
+    #refined_text = re.sub("\W*(@)", "", refined_text) #removes emails 
+    #refined_text = re.sub("(\d+)", "", refined_text) #removes digits
+
+    return refined_text
+
+def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, method = "Tfidf"):
+    """Count represents the number of features to be chosen from tfidf while text represents text data
+    vectorizer is either count_vectorizer or tfidfvectorizer"""
+    
+    if method.lower() == "tfidf":
+        vectorizer = TfidfVectorizer(token_pattern = '[A-Za-z]+', min_df = float(min_df), max_df = float
+                                        (max_df), ngram_range = (1,1), max_features = max_features)
+    else:
+        print("Wrong method. Only Tfidf vectorizer available")
+
+    vec = vectorizer.fit_transform(text)
+    X_features = vectorizer.get_feature_names_out()
+    print(vec.shape)
+    return vec, X_features, vectorizer
+
 
 class RoBERT_Model(nn.Module):
     """ Make an LSTM model over a fine tuned bert model. Parameters
@@ -256,9 +319,3 @@ def from_json(filepath):
 def load_config(config_path):
   return DotMap(from_json(config_path))
 
-def compute_metrics(eval_pred):
-    predictions, label = eval_pred
-    predictions = np.argmax(predictions, axis = 1)
-    return {"f1" :f1_score.compute(predictions = predictions, references = label, average = 'weighted'),
-            "precision" : precision.compute(predictions = predictions, references = label, average = 'weighted'),
-            "recall": recall.compute(predictions = predictions, references = label, average = 'weighted')}

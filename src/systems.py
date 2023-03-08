@@ -9,13 +9,14 @@ from os.path import join
 import os
 import torch.nn.functional as F
 
+from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 
 class ImdbDataModule(pl.LightningDataModule):
     r"""Data Module around datasets"""
     def __init__(self, config):
         super().__init__()
-        train_dataset = IMDB(split = 'train').
+        train_dataset = IMDB(split = 'train')
         train_dataset = train_dataset.shuffle(seed = 42)
 
         train_dataset = train_dataset.train_test_split(split = 0.7)
