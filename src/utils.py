@@ -1,5 +1,5 @@
 import os
-from src.paths import DATA_DIR
+from src.paths import DATA_DIR,CONFIG_DIR
 import json
 from dotmap import DotMap
 import pandas as pd
@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import re
 from sklearn.model_selection import train_test_split
+from os.path import join
 
 import transformers
 from transformers import get_linear_schedule_with_warmup
@@ -23,8 +24,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
-
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+label2id = {"positive": 1, "negative" : 0}
 
 def compute_metrics(predictions,label):
 
@@ -84,6 +86,12 @@ def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, me
 
     vec = vectorizer.fit_transform(text)
     X_features = vectorizer.get_feature_names_out()
+    params = vectorizer.get_params()
+
+    #params = json.dumps(params)
+    #pprint(params)
+    #to_json(params, join(CONFIG_DIR, 'vectorizer.json'))
+
     print(vec.shape)
     return vec, X_features, vectorizer
 

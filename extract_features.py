@@ -1,9 +1,14 @@
 from src.utils import spacy_preproc, parse_html, extract_features, regex_preproc
 from sklearn.feature_extraction.text import TfidfVectorizer
+from os.path import join
 
 import re
 import pickle
 import json
+
+
+
+label2id = {"positive": 1, "negative" : 0}
 
 
 def extract_and_pickle(args):

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+curl -X 'POST' \
+  'http://127.0.0.1:8080/api/v1/classify' \
+  -d '{
+    "text": """This is a real departure from other movies in the Rocky-verse. The absence of Stallone's input is felt throughout the films style, writing, direction and lack of any sentimentality.It simply doesn't feel like a Rocky/Creed movie, it's darker, more angry, more miserable and a lot less fun. But worst of all you just don't care about any of the characters...and that means no hairs on the back of your neck as you approach fight night.
+            On the fight, the way it was shot is very stylistic with heavy CGI and feels further removed from reality than the other movies (and hey - they weren't realistic!.If you forget it's Creed or part of the Rocky-verse, on its own it's an 'ok' film. Stack it up against what's been before and after what was a really entertaining first and second Creed instalment/s - it's a bad movie.Hopefully that's it now, unless Stallone gets back involved...then maybe """
+  }'
