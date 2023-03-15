@@ -33,4 +33,5 @@ RUN pip3 install \
     wandb==0.12.16 \
     transformers \ 
     datasets\
-    bs4
+    bs4\
+    streamlit\
