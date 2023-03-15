@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple, Any
 from pydantic import BaseModel,Field
 
 import pickle
@@ -13,16 +13,17 @@ class InferenceInput(BaseModel):
     text: str = Field(...,
                 example = 'Today is a good day',
                 title = 'What is on your mind?',
-                max_length = 200)
-
-class InferenceResponse(BaseModel):
-    r"""Response from Model"""
-    label: int = Field(example = 0,
-                    title= "Sentiment from model" )
+                max_length = 450)
 
 class InferenceResult(BaseModel):
     r"""Output from the Model"""
-    label: str = Field()
+    label: str = Field(example = "positive",
+                        title = "Sentiment")
+
+class InferenceResponse(BaseModel):
+    r"""Response from Model"""
+    error: str = Field(..., example=False, title='error?')
+    results : Dict[str, Any] = Field(..., example={}, title='label and probability results')
 
 class ErrorResponse(BaseModel):  
     error: str = Field(..., example = True, title = 'error?'),
@@ -38,7 +39,9 @@ def home():
 
 @app.on_event("startup")
 async def startup_event(): 
-    label2id = {"positive": 1, "negative" : 0}
+
+    label2id = {"positive": 1, "negative": 0}
+    label2id = {value:key for key,value in label2id.items()}
 
     with open('data/pickle/train_vectorizer.pkl', 'rb') as ins:
         train_vectorizer = pickle.load(ins)
@@ -58,14 +61,17 @@ def classify(request: Request, body: InferenceInput):
 
     system = app.package['system']
     vectorizer = app.package['vectorizer']
+    label = app.package['label2id']
+    text = [body.text]
 
+    result = system.predict(vectorizer.transform(text))
+    result = result.tolist()
+    result = [(item,label.get(sentiment)) for item,sentiment in zip(text,result)]
 
-    result = system.predict(vectorizer.transform(body))
-    return {"sentiment" :result,
-            "errors" : True}
-
-
+    return {"error" : False,
+            "results" : result,}
 
 if __name__ == "__main__":
     uvicorn.run(app= app, port = 8080, log_level= 'info')
+
 

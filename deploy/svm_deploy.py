@@ -38,6 +38,9 @@ def load_system():
 
 def test_model(filepath):
 
+    id2label = {1:"positive", 0:"negative"}
+    #id2label = {value:key for key,value in label2id.items()}
+
     #Fitting features and output labels
     with open (filepath, 'r') as ins:
         text = ins.readlines()
@@ -50,9 +53,12 @@ def test_model(filepath):
 
     #access test file
     pred_svm = model.predict(test_vec)
+    pred_svm = pred_svm.tolist()
     print(pred_svm)
-
-    return pred_svm
+    result = {"sentiment": id2label.get(item) for item in pred_svm}
+    
+    print(result)
+    return result
 
 def save_results():
     """Saves result"""
