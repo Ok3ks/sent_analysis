@@ -16,7 +16,6 @@ RUN pip3 install \
     matplotlib==3.5.2 \
     metaflow==2.6.0 \
     numpy==1.22.3 \
-    opencv-python==4.5.5.64 \
     pandas==1.3.5 \
     plotly==5.7.0 \
     Pillow==9.0.0 \
@@ -31,7 +30,6 @@ RUN pip3 install \
     tqdm==4.64.0 \
     uvicorn[standard]==0.17.6 \
     wandb==0.12.16 \
-    transformers \ 
     datasets\
     bs4\
     streamlit\

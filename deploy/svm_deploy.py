@@ -1,17 +1,9 @@
 
 import os
-import pytorch_lightning as pl
-from os.path import join
-
 import json
 import random
-import torch
-import numpy as np
 import pickle 
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
 
 from src.paths import LOG_DIR, CONFIG_DIR,DATA_DIR, MODEL_DIR
 from src.utils import load_config, to_json,regex_preproc
@@ -22,20 +14,19 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn import svm
 import logging
 
-from metaflow import flowspec
+#from metaflow import flowspec
 
+#Modify code into flowspec
 
 def load_system():
     """Loads saved model and vectorizer, returns vectorizer, model"""
-
     with open('data/pickle/train_vectorizer.pkl', 'rb') as ins:
         train_vectorizer = pickle.load(ins)
     
     with open(join(MODEL_DIR,'svm.pkl'), 'rb') as out:
         model = pickle.load(out)
-    
-    return train_vectorizer, model
 
+    return train_vectorizer, model
 
 def test_model(filepath):
 

@@ -22,9 +22,6 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from nltk.tokenize import word_tokenize
-import matplotlib.pyplot as plt
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 label2id = {"positive": 1, "negative" : 0}
 
