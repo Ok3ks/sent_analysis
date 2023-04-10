@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request
 import uvicorn
 
 import pickle
-
 from src.paths import MODEL_DIR
 from os.path import realpath,join
 

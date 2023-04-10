@@ -15,7 +15,6 @@ from sklearn import svm
 import logging
 
 #from metaflow import flowspec
-
 #Modify code into flowspec
 
 def load_system():
@@ -29,7 +28,7 @@ def load_system():
     return train_vectorizer, model
 
 def test_model(filepath):
-
+    """Tests a svm model on comments stored in json"""
     id2label = {1:"positive", 0:"negative"}
 
     if os.path.isfile(filepath):
