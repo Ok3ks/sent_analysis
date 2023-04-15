@@ -9,11 +9,7 @@ import re
 from sklearn.model_selection import train_test_split
 from os.path import join
 
-import transformers
-from transformers import get_linear_schedule_with_warmup
 import time
-from transformers import BertTokenizerFast
-from transformers import BertForSequenceClassification, AdamW, BertConfig
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 
 import torch
@@ -91,80 +87,6 @@ def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, me
 
     print(vec.shape)
     return vec, X_features, vectorizer
-
-
-class RoBERT_Model(nn.Module):
-    """ Make an LSTM model over a fine tuned bert model. Parameters
-    __________
-    bertFineTuned: BertModel
-        A bert fine tuned instance
-    """
-
-    #added output_class to function
-
-    def __init__(self, config_path, num_classes = 2):
-        super(RoBERT_Model, self).__init__()
-        config = BertConfig.from_json_file(config_path)
-        self.bert = BertForSequenceClassification.from_pretrained("bert-base-uncased", config = config)
-        self.lstm = nn.LSTM(768, 100, num_layers=1, bidirectional=False)
-        self.classifier = torch.nn.Linear(100, num_classes)
-        self.out = nn.Softmax(dim= num_classes)
-    
-
-    def forward(self, test_set, comb_len):
-        """ Define how to performed each call
-        Parameters
-        __________
-        ids: array
-            -
-        mask: array
-            - 
-        token_type_ids: array
-            -
-        lengt: int
-
-        comb_len: is the dictionary with a key of doc_id and value of the length of each document chunks included
-            -
-        Returns:
-        _______
-        -
-        """
-
-        #doc_id = chunk["doc_id"]
-        output = []
-
-        #doc_tensor = {}
-
-        #doc_ids = [torch.LongTensor(x) for x in test_set["doc_id"][:8]]
-
-        for doc_id,num in comb_len.items():
-            start = 0
-            ids = [torch.LongTensor(x) for x in test_set["input_ids"][start:start+num]]
-            ids = nn.utils.rnn.pad_sequence(ids, batch_first= False)
-
-            mask = [torch.LongTensor(x) for x in test_set["attention_mask"][start:start+num]]
-            mask = nn.utils.rnn.pad_sequence(mask, batch_first= False)
-
-            token_type_ids = [torch.LongTensor(x) for x in test_set["token_type_ids"][start:start+num]]
-            token_type_ids = nn.utils.rnn.pad_sequence(token_type_ids, batch_first= False)
-
-            out = self.bert.forward(ids, mask, token_type_ids, output_hidden_states=True)
-            seq_lengths = torch.LongTensor([x for x in map(len, test_set["input_ids"][start:start+num])])
-          
-            device = torch.device("cpu")
-            out = out.hidden_states[-1].to(device)
-            out = out.transpose(0, 1) 
-
-            #lstm_input = nn.utils.rnn.pack_padded_sequence(out, seq_lengths.cpu().numpy(), batch_first=False, enforce_sorted=False)
-
-            packed_output, (h_t, h_c) = self.lstm(out,)  # (h_t, h_c))
-#           output, _ = nn.utils.rnn.pad_packed_sequence(packed_output, padding_value=-91)
-            h_t = self.classifier(h_t)
-            h_t = self.out(h_t)
-            output.append(h_t)
-            start = start + num
-
-        return output
 
 class AssessData():
     def __init__(self, dictstringindex: dict, adict:dict):
