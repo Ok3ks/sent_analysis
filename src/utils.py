@@ -18,6 +18,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from typing import List
+
 
 label2id = {"positive": 1, "negative" : 0}
 
@@ -36,24 +38,6 @@ def parse_html(text):
     soup = BeautifulSoup(text, "html.parser")
     parsed_text = soup.get_text()
     return parsed_text
-
-
-def spacy_preproc(text):
-
-    "Removes stopwords and punctuation and"
-    nlp = English()
-    tokenizer = nlp.tokenizer
-    refined_text = tokenizer(text)
-        
-    refined_text = [text for text in refined_text if not text.is_stop]
-    refined_text = [text for text in refined_text if not text.is_punct]
-    refined_text = [text for text in refined_text if not text.like_email]
-    refined_text = [text for text in refined_text if not text.like_url]
-    refined_text = [text.text for text in refined_text if not text.like_num]
-
-    text = " ".join(refined_text[:])
-
-    return text
 
 def regex_preproc(text): 
 
@@ -81,29 +65,26 @@ def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, me
     X_features = vectorizer.get_feature_names_out()
     params = vectorizer.get_params()
 
-    #params = json.dumps(params)
-    #pprint(params)
-    #to_json(params, join(CONFIG_DIR, 'vectorizer.json'))
-
     print(vec.shape)
     return vec, X_features, vectorizer
 
 class AssessData():
+    """Class accepts two dictionaries, one which indexes every string entry, the other,a dictionary of lists
+     with labels/classes as keys """
     def __init__(self, dictstringindex: dict, adict:dict):
         
         #Processes list of strings, 
         self._content = dictstringindex
-        self._threshold = {'longformer': 4096, 'BERT': 512, "Short" : 300 }
         self._adict = adict
 
-    def _index_to_label(self):
-        index_to_label = {}; index = 0
+    def _label_to_index(self):
+        """Converts labels into index"""
+        l_2_idx = {}; index = 0
         for key,alist in self._adict.items():
           for x in alist:
-            index_to_label[index] = key
+            l_2_idx[index] = key
             index += 1
-
-        return index_to_label
+        return l_2_idx
 
     def _string_length(self, text):
         """Processes the number of words in one text string """
@@ -117,12 +98,13 @@ class AssessData():
         self._all_length = {i: self._string_length(item) for i,item in self._content.items()}
         return self._all_length
             
-    def _create_distribution(self): 
+    def _create_distribution(self, threshold = {'longformer': 4096, 'BERT': 512, "Short" : 300 }): 
         "Creates a distribution based on the number of words in text strings"
         
         self._get_string_length()
-        self._distribution = {"Too Long" : [],"Long": [], "BERT": [], "Short":[]}
-
+        self._threshold = threshold
+        self._distribution = {}
+        self._distribution = {key:self._distribution.get(key, []) for key,_ in self.threshold}
 
         for index,length in self._all_length.items():
             if length > self._threshold['longformer']:
@@ -135,7 +117,6 @@ class AssessData():
                 self._distribution["Short"].append(index)
         
         return self._distribution
-
 
     def _extract(self, key = "Longformers"):
         """Extracts text strings suitable for particular classification technique"""
@@ -152,7 +133,10 @@ class AssessData():
 
     def _visualise(self):
         """Displays a plot of count of number of words versus the categories created"""
-        
+
+        if self._distribution is None :
+            self._create_distribution()
+
         values = {k:len(v) for k, v in self._distribution.items()}
         print(values)
         plt.bar(values.keys(),values.values())
@@ -166,11 +150,14 @@ class AssessData():
         
         """Chunking for input into BERT, length of input 
         must be less than 512 with overlap of 50 tokens"""
-
+    
         self._pointer = words_per_segment
         self._chunks = {}
         self._shift = overlap.get("number")
         self._overlap = overlap
+
+        assert self._pointer < 250 , "Segments should be less than 250"
+        assert self._pointer + self._shift < 512, "Should be less than limits of BERT-base"
 
         for index,temp in self._content.items():
             length = len(temp)
@@ -190,7 +177,7 @@ class AssessData():
                       count +=1                    
 
                     elif self._overlap.get('side') == "one":
-                      content = temp[count*self._pointer - self._shift -1: count+1*self._pointer]
+                      content = temp[count*self._pointer - self._shift - 1: count+1*self._pointer]
                       self._chunks[index].append(content)
                       count +=1
                     else:
@@ -204,22 +191,20 @@ class AssessData():
                 content = [temp[:]]
                 self._chunks[index].append(content)
         return self._chunks
-        
 
+def prep(directory):
+    """Prepares a dictionary of lists from a directory path, no preprocessing. Name of directory corresponds to dictionary key
+    Single level of directory,files should exist in next sub-directory"""
+    
+    corpus = {}; temp = []
 
-class PrepareCorpus():
-  """Prepares a corpus from a list of folders in the local directory
-  corresponding to class labels"""
+    assert os.path.isdir(directory) == True, 'Directory does not exist'
+    assert os.listdir(directory) == List[str], 'Directory is empty'
 
-  def __init__(self, path):
-        self._path = path
-        
-  def _prep(self):
-        """BY date"""
-        self._corpus = {}; temp = []
-        for topic in os.listdir(self._path):
-            subfolder = self._path + '/' + topic
-            current = []
+    for topic in os.listdir(directory):
+        subfolder = str(directory) + '/' + topic
+        current = []
+        if os.path.isdir(subfolder):
             for doc in os.listdir(subfolder):
                 if str(doc) == '.DS_Store':
                     pass 
@@ -228,20 +213,22 @@ class PrepareCorpus():
                 with open(file, 'r', encoding='utf-8', errors= 'ignore') as t:
                     temp = " ".join(t.readlines())
                     current.append(temp)
-            self._corpus[topic] = current
-        return self._corpus
-
+            corpus[topic] = current
+        else:
+            with open(file, 'r', encoding='utf-8', errors= 'ignore') as t:
+                    temp = " ".join(t.readlines())
+                    current.append(temp)
+            corpus[topic] = current    
+    return corpus
 
 def to_json(x, filepath):
   with open(filepath, 'w') as fp:
     json.dump(x, fp)
 
-
 def from_json(filepath):
   with open(filepath, 'r') as fp:
     data = json.load(fp)
   return data
-
 
 def load_config(config_path):
   return DotMap(from_json(config_path))
