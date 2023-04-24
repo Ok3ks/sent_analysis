@@ -4,8 +4,9 @@ import json
 from dotmap import DotMap
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
 import re
+from sklearn.preprocessing import LabelEncoder
+
 from sklearn.model_selection import train_test_split
 from os.path import join
 
@@ -18,12 +19,16 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from src.paths import LOG_DIR
 from typing import List
 
+from datasets import load_metric
+from bs4 import BeautifulSoup
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 label2id = {"positive": 1, "negative" : 0}
 
-def compute_metrics(predictions,label):
+def compute_metrics(predictions:List[int],label:List[int]):
 
     acc = load_metric('accuracy')
     f1_score = load_metric('f1')
@@ -34,7 +39,6 @@ def compute_metrics(predictions,label):
 
 def parse_html(text):
     "removes hyperlink from a piece of text"
-    
     soup = BeautifulSoup(text, "html.parser")
     parsed_text = soup.get_text()
     return parsed_text
@@ -62,11 +66,14 @@ def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, me
         print("Wrong method. Only Tfidf vectorizer available")
 
     vec = vectorizer.fit_transform(text)
-    X_features = vectorizer.get_feature_names_out()
+
+    features = {"word_features": vectorizer.get_feature_names_out().tolist(),
+                "stop_words":list(vectorizer.stop_words_),}
+    
     params = vectorizer.get_params()
 
     print(vec.shape)
-    return vec, X_features, vectorizer
+    return features, vectorizer,params
 
 class AssessData():
     """Class accepts two dictionaries, one which indexes every string entry, the other,a dictionary of lists
