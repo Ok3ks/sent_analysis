@@ -1,15 +1,10 @@
-FROM gitpod/workspace-full:latest
+FROM python:3.9-slim
 
-USER gitpod
+WORKDIR /app
 
-# Install Redis.
-RUN sudo apt-get update \
-    && sudo apt-get install -y \
-    redis-server \
-    && sudo rm -rf /var/lib/apt/lists/*
+COPY ["./models", "./deploy", "./"]
 
-RUN pip3 install \
-    celery==5.2.2 \
+RUN pip install --upgrade pip && pip install celery==5.2.2 \
     dotmap==1.3.30 \
     fastapi==0.75.2 \
     label-studio==1.4.1.post1 \
@@ -30,6 +25,10 @@ RUN pip3 install \
     tqdm==4.64.0 \
     uvicorn[standard]==0.17.6 \
     wandb==0.12.16 \
-    datasets==2.12.0\
-    bs4==0.0.1\
-    streamlit==1.2.2\
+    datasets==2.12.0 \
+    bs4==0.0.1 \
+    streamlit==1.22.0
+    
+CMD ["source" ,"init_env.sh"]
+CMD ["source" ,"auth.sh"]
+CMD ["uvicorn", "svm_api:app", "--host", "0.0.0.0", "--port", "8080"]
