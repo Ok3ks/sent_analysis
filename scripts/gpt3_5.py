@@ -37,5 +37,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('comment', help ='Add comment here')
     args = parser.parse_args()
-    result = sentiment_chain.run(args)
+    result = get_sentiment(args.comment)
     print(result)

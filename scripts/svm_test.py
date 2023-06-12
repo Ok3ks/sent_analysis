@@ -1,12 +1,12 @@
 
 import os
+from os.path import join
 import json
 import random
 import pickle 
 
-
 from src.paths import LOG_DIR, CONFIG_DIR,DATA_DIR, MODEL_DIR
-from src.utils import load_config, to_json,regex_preproc
+from src.utils import from_json,to_json,regex_preproc,extract_features,compute_metrics
 from metaflow import FlowSpec, step, Parameter
 
 from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
@@ -14,54 +14,76 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn import svm
 import logging
 
-#from metaflow import flowspec
-#Modify code into flowspec
+from metaflow import FlowSpec, step, Parameter
 
-def load_system():
-    """Loads saved model and vectorizer, returns vectorizer, model"""
-    with open('data/pickle/train_vectorizer.pkl', 'rb') as ins:
-        train_vectorizer = pickle.load(ins)
-    
-    with open(join(MODEL_DIR,'svm.pkl'), 'rb') as out:
-        model = pickle.load(out)
+class SvmTest(FlowSpec):
 
-    return train_vectorizer, model
+    filepath = Parameter('file', 
+                help="path to test file", 
+                default = join(DATA_DIR, 'test.json'))
 
-def test_model(filepath):
-    """Tests a svm model on comments stored in json"""
-    id2label = {1:"positive", 0:"negative"}
+    @step
+    def start(self):
+        """Loads saved model and vectorizer, returns vectorizer, model"""
+        
+        if os.path.isfile(self.filepath):
+            obj = from_json(self.filepath) 
 
-    if os.path.isfile(filepath):
-        with open (filepath, 'r') as ins:
-            text = ins.readlines()
-        processed = [regex_preproc("".join(text))] 
-    else:
-        processed = [regex_preproc(filepath)]
-    #print(processed)
+        with open(join(DATA_DIR, 'pickle', 'train_vectorizer.pkl'), 'rb') as ins:
+            train_vectorizer = pickle.load(ins)  
 
-    train_vectorizer,model = load_system()
-    test_vec = train_vectorizer.transform(processed)
+        #self.models = ['svm','mnb','bnb' ,'gnb']
+        # setup to test all models at once
+          
+        with open(join(MODEL_DIR,'svm.pkl'), 'rb') as out:
+            model = pickle.load(out)
 
-    #access test file
-    pred_svm = model.predict(test_vec)
-    pred_svm = pred_svm.tolist()
-    #print(pred_svm)
-    result = {"sentiment": id2label.get(item) for item in pred_svm}
-    
-    #print(result)
-    return result
+        self.file = obj
+        self.vectorizer = train_vectorizer
+        self.model = model
+        self.next(self.test_model)
 
-def save_results():
-    """Saves result"""
-    log_file = join(LOG_DIR, 'results_svm.json')
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    to_json(results, log_file)
-    logging.info(f"(Saving model to {log_file}")
+    @step
+    def test_model(self):
+        """Tests a svm model on comments stored in json"""
+        
+        id2label = {1:"positive", 0:"negative"} 
+        label2id = {"positive":1, "negative":0}
+
+        processed = [regex_preproc(text['review']) for text in self.file]
+        self.id_labels =[label2id.get(text["sentiment"]) for text in self.file]
+
+        test_vec = self.vectorizer.transform(processed)
+        pred = self.model.predict(test_vec)
+        self.pred = pred.tolist()
+
+        sentiment = [{f"{count}": id2label.get(item)} for count,item in enumerate(self.pred)]
+        self.result = {"sentiment":sentiment}
+        self.next(self.metrics)
+
+    @step
+    def metrics(self):
+        """Computes accuracy"""
+        acc,f_1 = compute_metrics(self.pred,self.id_labels)
+        print("Accuracy: {}, f1:{}".format(acc,f_1))
+        self.result["accuracy"] = acc
+        self.result["f_1"] = f_1
+        self.next(self.end)
+
+    @step
+    def end(self):
+        """Saves result"""
+        log_file = join(LOG_DIR, 'result_svm.json')
+
+        try:
+            os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        except OSError:
+            os.makedirs(os.path.dirname(log_file))
+
+        to_json(self.result, log_file)
+        logging.info(f"(Saving model to {log_file}")
+
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('filepath', type= str, help = 'path to json comment file')
-    args = parser.parse_args()
-    test_model(args.filepath)
+    SvmTest()
 

@@ -5,6 +5,7 @@ from dotmap import DotMap
 import pandas as pd
 import numpy as np
 import re
+import pickle
 from sklearn.preprocessing import LabelEncoder
 
 from sklearn.model_selection import train_test_split
@@ -55,6 +56,18 @@ def regex_preproc(text):
 
     return refined_text
 
+def from_pickle(picklepath):
+    with open(picklepath, 'rb') as ins:
+        obj = pickle.load(ins)
+    return obj
+
+def to_pickle(x, picklepath):
+    with open(picklepath, 'wb') as outs:
+        pickled_file = pickle.dump(x, outs)
+    print("{} pickled in {}".format(x,picklepath))
+    return pickled_file
+    
+
 def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, method = "Tfidf"):
     """Count represents the number of features to be chosen from tfidf while text represents text data
     vectorizer is either count_vectorizer or tfidfvectorizer"""
@@ -73,7 +86,7 @@ def extract_features(text, min_df = 0.05 , max_df = 0.5, max_features = 1000, me
     params = vectorizer.get_params()
 
     print(vec.shape)
-    return features, vectorizer,params
+    return features,vectorizer,params
 
 class AssessData():
     """Class accepts two dictionaries, one which indexes every string entry, the other,a dictionary of lists
