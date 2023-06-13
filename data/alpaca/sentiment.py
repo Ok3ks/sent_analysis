@@ -13,7 +13,10 @@ MODEL_NAME= os.environ.get("MODEL_NAME")
 output_parser = PydanticOutputParser(pydantic_object = EntryText)
 format_instructions = output_parser.get_format_instructions()
 model = OpenAI(model_name = MODEL_NAME, openai_api_key= OPENAI_API_KEY, temperature = temperature)
+output_path = realpath(j(dirname(__file__), 'training_data'))
 
+#Label data with GPT3.5
+#Filter accurate datapoints with cleanlab
 
 def get_sentiment(text):
     """Obtains the sentiment of a text from pipeline"""
@@ -27,6 +30,7 @@ def get_sentiment(text):
     print(sentiment)
 
 if __name__ == "__main__":
+
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-filepath',
@@ -35,10 +39,15 @@ if __name__ == "__main__":
     file = args.filepath
 
     with open(file, 'r') as ins:
-        news = ins.readlines()
+        news = json.load(ins)
 
-    news = "".join(news)
-    news = news.split(";/n")
-    print(len(news))
-    output = [get_sentiment(text) for text in news[2:10]]
-    #print(output, len(output))
+    sentiment = {}
+
+    for key,value in news.items():
+        text = "".join(news[key])
+        sentiment['sentiment'] = get_sentiment(text)
+        sentiment['review'] = "".join(text)
+    
+    with open(j(output_path, 'train.json'), 'w') as out:
+        json.dump(output, out)
+   
