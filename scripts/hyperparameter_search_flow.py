@@ -17,7 +17,7 @@ import numpy as np
 import random
 import json
 
-
+#Incomplete
 class EvalClassifier(FlowSpec):
 
     model_path = Parameter('model', help = "path to pickled model", default = join(MODEL_DIR, 'svm.pkl'))

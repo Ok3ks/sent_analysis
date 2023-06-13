@@ -1,2 +1,0 @@
-token_pattern = '[A-Za-z]+', min_df = float(min_df), max_df = float
-                                        (max_df), ngram_range = (1,1), max_features = max_features
