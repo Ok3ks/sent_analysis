@@ -1,8 +1,0 @@
-name: Sent Analysis CI
-
-on: [push]
-  branch
-jobs:
-  Test-new-data
-    runs-on : ubuntu-latest
-    steps: echo "Checking the sentiment of new headlines triggered n
