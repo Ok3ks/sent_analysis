@@ -33,7 +33,7 @@ jobs:
         
       - name : Run tests with pytests
         run: echo "Running Tests" |
-              pytest run tests
+              pytest tests/
         
       
 
