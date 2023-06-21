@@ -21,7 +21,7 @@ def test_extract_features(text_fixture):
     assert isinstance(text_fixture, list), f'{type(text_fixture)}Can only extract features from strings'
     
     processed = [regex_preproc(text['review']) for text in text_fixture]
-    vec,features,vectorizer,params = extract_features(processed)
+    features,vectorizer,params = extract_features(processed)
 
     assert features.get("word_features") is not None, "word_features not found"
     assert features.get("stop_words") is not None, "stop_words not found"
