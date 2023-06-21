@@ -38,9 +38,11 @@ class AlpacaRest():
         #Add start and end date as parameters
         self.tickers = tickers
         self.base_url = "https://data.alpaca.markets/v1beta1/news"
-        self.parameters = {"symbols": self.tickers[0],
+        self.parameters = {"symbols": ",".join(self.tickers),
+
                             "start": datetime.date(2023, 1, 1).isoformat(),
-                            "end": datetime.date(2023, 3, 1).isoformat(),
+                            "end": datetime.date(2023, 6, 1).isoformat(),
+
                            "exclude_contentless": True,
                            "include_content": True}
         self.headers = {'Apca-Api-Key-Id': f"{API_KEY}",
@@ -71,18 +73,25 @@ def parse_article(_data):
     document.metadata['url'] = _data['url']
     document.metadata['symbols'] = _data['symbols']
     document.metadata['author'] = _data['author']
-    document.metadata['created_at'] = _data['created_at']
+    document.metadata['updated_at'] = _data['updated_at']
     return document
 
 if __name__ == "__main__":
+
     #Add support for date entry, assert RFC 3339 format
-    news = AlpacaRest(['ETHUSD'])
+    #Add support for ticker entry 
+
+    news = AlpacaRest(['ETHUSD, BTCUSD'])
     news.next()
+
     output = {}
+    metadata = {}
+    #"id", "text", "metadata"
     
     parsed = (parse_article(item) for item in news.news)
+
     for i in parsed:
-        output.update({i.id:i.text})
+        output.update({i.id: i.text[-1], f"{i.id}_metadata":i.metadata})
 
     with open(j(output_path, 'news.json'), 'w') as out:
         json.dump(output, out)

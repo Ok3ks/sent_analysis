@@ -1,16 +1,20 @@
 import os
+import json
 
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
-from langchain.output_parsers import PydanticOutputParser
+from langchain.output_parsers import CommaSeparatedListOutputParser
 from langchain.chains import LLMChain
-from deploy.demo.sent_gpt3_5_api import EntryText
+
+
+from os.path import realpath,dirname
+from os.path import join as j
 
 temperature= 0.3
 OPENAI_API_KEY= os.environ.get("OPENAI_API_KEY")
 MODEL_NAME= os.environ.get("MODEL_NAME")
 
-output_parser = PydanticOutputParser(pydantic_object = EntryText)
+output_parser = CommaSeparatedListOutputParser()
 format_instructions = output_parser.get_format_instructions()
 model = OpenAI(model_name = MODEL_NAME, openai_api_key= OPENAI_API_KEY, temperature = temperature)
 output_path = realpath(j(dirname(__file__), 'training_data'))
@@ -20,21 +24,20 @@ output_path = realpath(j(dirname(__file__), 'training_data'))
 
 def get_sentiment(text):
     """Obtains the sentiment of a text from pipeline"""
-    #print(text)
     sentiment_prompt = PromptTemplate(template="""Assess the sentiment of this user's query \n{comment}. Respond if the sentiment of supplied comment is positive, neutral or negative \n{format_instructions}""",
                                         input_variables=["comment"],
                                         partial_variables= {"format_instructions": format_instructions})
     
     sentiment_chain = LLMChain(llm = model, prompt = sentiment_prompt)
-    sentiment = sentiment_chain.run(text)
+    sentiment = sentiment_chain.predict_and_parse(comment = text)
     print(sentiment)
+    return sentiment.replace("\n", "")
 
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-filepath',
-        help="path to file")
+    parser.add_argument('-filepath', help="path to file")
     args = parser.parse_args()
     file = args.filepath
 
@@ -44,10 +47,9 @@ if __name__ == "__main__":
     sentiment = {}
 
     for key,value in news.items():
-        text = "".join(news[key])
-        sentiment['sentiment'] = get_sentiment(text)
-        sentiment['review'] = "".join(text)
+        if "metadata" not in str(key):
+            sentiment.update({key:get_sentiment(value)})
     
     with open(j(output_path, 'train.json'), 'w') as out:
-        json.dump(output, out)
+        json.dump(sentiment, out)
    

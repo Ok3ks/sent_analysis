@@ -38,8 +38,6 @@ except OSError:
 
 output_path = realpath(j(dirname(__file__), 'training_data'))
 
-
-
 class AlpacaSource(StatelessSource):
 
     """class to process each worker"""
