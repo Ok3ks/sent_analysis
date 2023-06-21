@@ -18,6 +18,7 @@ fsspec==2023.6.0
 gcloud==0.18.3
 googleapis-common-protos==1.59.0
 greenlet==2.0.2
+datasets
 h11==0.14.0
 httpcore==0.16.3
 httplib2==0.22.0
