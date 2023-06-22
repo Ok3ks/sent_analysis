@@ -36,13 +36,14 @@ class AlpacaRest():
         # using REST
 
         #Add start and end date as parameters
+        self.news = []
         self.tickers = tickers
         self.base_url = "https://data.alpaca.markets/v1beta1/news"
         self.parameters = {"symbols": ",".join(self.tickers),
 
                             "start": datetime.date(2023, 1, 1).isoformat(),
                             "end": datetime.date(2023, 6, 1).isoformat(),
-
+                            "limit": 50,
                            "exclude_contentless": True,
                            "include_content": True}
         self.headers = {'Apca-Api-Key-Id': f"{API_KEY}",
@@ -53,10 +54,26 @@ class AlpacaRest():
                                 timeout=5)
 
     def next(self):
-        out = self.req.json()
-        print(out.keys())
-        print(out['news'])
-        self.news = out['news']
+        self.out = self.req.json()
+        self.news.extend(self.out['news'])
+        self.next_page()
+    
+    def next_page(self):
+        counter = 1
+
+        while self.out['next_page_token'] is not None :
+            self.next_page_token = self.out['next_page_token']
+            self.parameters.update({"page_token":self.next_page_token})
+            self.req = requests.get(self.base_url,
+                                params=self.parameters,
+                                headers=self.headers,
+                                timeout=5)
+            self.out = self.req.json()
+            self.news.extend(self.out['news'])
+            counter+=1
+            print(f"There are {counter} pages")
+    
+            
 
 def parse_article(_data):
     # document_id = hashlib.md5(_data['content'].encode()).hexdigest()
@@ -84,14 +101,15 @@ if __name__ == "__main__":
     news = AlpacaRest(['ETHUSD, BTCUSD'])
     news.next()
 
-    output = {}
-    metadata = {}
-    #"id", "text", "metadata"
-    
+    output = {"id":[], "metadata":[],"text":[]}
     parsed = (parse_article(item) for item in news.news)
 
     for i in parsed:
-        output.update({i.id: i.text[-1], f"{i.id}_metadata":i.metadata})
+        output["id"].append(i.id)
+        output["text"].append(i.text[-1]) 
+        output["metadata"].append(i.metadata)
+
+    print(f"There are {len(output['id'])} news entries")
 
     with open(j(output_path, 'news.json'), 'w') as out:
         json.dump(output, out)
