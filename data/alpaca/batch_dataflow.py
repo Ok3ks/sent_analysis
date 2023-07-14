@@ -41,8 +41,8 @@ class AlpacaRest():
         self.base_url = "https://data.alpaca.markets/v1beta1/news"
         self.parameters = {"symbols": ",".join(self.tickers),
 
-                            "start": datetime.date(2023, 1, 1).isoformat(),
-                            "end": datetime.date(2023, 6, 1).isoformat(),
+                            "start": datetime.date(2023, 7, 9).isoformat(),
+                            "end": datetime.date(2023, 7, 14).isoformat(),
                             "limit": 50,
                            "exclude_contentless": True,
                            "include_content": True}
@@ -55,6 +55,7 @@ class AlpacaRest():
 
     def next(self):
         self.out = self.req.json()
+        print(self.out)
         self.news.extend(self.out['news'])
         self.next_page()
     
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     #Add support for date entry, assert RFC 3339 format
     #Add support for ticker entry 
 
-    news = AlpacaRest(['ETHUSD, BTCUSD'])
+    news = AlpacaRest(['ETHUSD', 'BTCUSD', 'SOLUSD', 'COIN'])
     news.next()
 
     output = {"id":[], "metadata":[],"text":[]}
@@ -111,5 +112,5 @@ if __name__ == "__main__":
 
     print(f"There are {len(output['id'])} news entries")
 
-    with open(j(output_path, 'news.json'), 'w') as out:
+    with open(j(output_path, 'recent_news.json'), 'w') as out:
         json.dump(output, out)

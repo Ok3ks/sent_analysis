@@ -46,7 +46,7 @@ class AlpacaSource(StatelessSource):
         # using REST
         self.tickers = tickers
         self.base_url = "https://data.alpaca.markets/v1beta1/news"
-        self.parameters = {"symbols": self.tickers[0],
+        self.parameters = {"symbols": ",".join(self.tickers),
                            "exclude_contentless": True,
                            "include_content": True}
         self.headers = {'Apca-Api-Key-Id': f"{API_KEY}",
